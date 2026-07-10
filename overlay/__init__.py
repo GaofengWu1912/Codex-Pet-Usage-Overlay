@@ -1,0 +1,2 @@
+"""Transparent macOS usage overlay."""
+

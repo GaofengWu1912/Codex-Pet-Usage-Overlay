@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Pet Usage Overlay screenshot placeholder</title>
+  <desc id="desc">A placeholder for a future product screenshot.</desc>
+  <rect width="960" height="540" fill="#17191f"/>
+  <rect x="24" y="24" width="912" height="492" rx="8" fill="none" stroke="#353a43" stroke-width="2" stroke-dasharray="10 8"/>
+  <text x="480" y="255" fill="#f7f8fa" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="28" text-anchor="middle">Screenshot coming soon</text>
+  <text x="480" y="295" fill="#a9b0ba" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="18" text-anchor="middle">Codex Pet Usage Overlay</text>
+</svg>

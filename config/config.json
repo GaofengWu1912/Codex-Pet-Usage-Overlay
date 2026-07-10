@@ -1,0 +1,36 @@
+{
+  "pet_region": {
+    "x": 20,
+    "y": 760,
+    "width": 120,
+    "height": 120
+  },
+  "overlay": {
+    "offset_x": 132,
+    "offset_y": -60,
+    "width": 236,
+    "height": 292
+  },
+  "refresh_seconds": 45,
+  "mouse_poll_ms": 100,
+  "hover_show_delay_ms": 1000,
+  "hover_hide_delay_ms": 250,
+  "debug_hover": false,
+  "log_file": "~/Library/Logs/CodexPetUsage/hover.log",
+  "follow_codex_pet": true,
+  "codex_state_file": "~/.codex/.codex-global-state.json",
+  "codex_api_timeout_seconds": 8,
+  "use_codex_api": true,
+  "state_roots": [
+    "~/.codex",
+    "~/Library/Application Support/Codex"
+  ],
+  "cache_file": "~/Library/Application Support/CodexPetUsage/cache.json",
+  "max_state_files": 100,
+  "max_log_files": 30,
+  "log_tail_bytes": 524288,
+  "token_budgets": {
+    "five_hour": null,
+    "seven_day": null
+  }
+}

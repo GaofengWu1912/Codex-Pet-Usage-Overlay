@@ -1,0 +1,40 @@
+# macOS
+.DS_Store
+._*
+
+# Python
+.venv/
+venv/
+__pycache__/
+.pycache/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+config.local.json
+
+# Build and packaging output
+build/
+dist/
+*.spec.bak
+
+# Runtime data
+*.log
+logs/
+cache/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# IDE
+.idea/
+.vscode/
+*.swp
