@@ -6,7 +6,7 @@ An independent, click-through macOS overlay that shows Codex rate-limit usage wh
 
 ## Screenshot
 
-![Codex Pet Usage Overlay screenshot placeholder](docs/screenshot-placeholder.svg)
+![Codex Pet Usage Overlay showing five-hour and seven-day remaining quota beside a Codex pet](docs/codex-pet-usage-overlay.png)
 
 ## Features
 
