@@ -90,7 +90,8 @@ def read_log_usage(
 
             timestamp = _event_timestamp(event.get("timestamp"))
             if timestamp is not None and seven_cutoff <= timestamp <= collected + 60:
-                usage = payload.get("info", {}).get("last_token_usage")
+                info = payload.get("info")
+                usage = info.get("last_token_usage") if isinstance(info, dict) else None
                 tokens = usage.get("total_tokens") if isinstance(usage, dict) else None
                 if isinstance(tokens, (int, float)) and not isinstance(tokens, bool):
                     digest = hashlib.sha1(raw_line).digest()

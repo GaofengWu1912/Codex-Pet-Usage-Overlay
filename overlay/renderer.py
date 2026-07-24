@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 
 from PyQt6.QtCore import QRectF, Qt
-from PyQt6.QtGui import QColor, QFont, QPainter, QPen
+from PyQt6.QtGui import QBrush, QColor, QConicalGradient, QFont, QPainter, QPen
 
 from collector.models import UsageSnapshot, UsageWindow
 
@@ -15,8 +15,7 @@ PANEL.setAlpha(242)
 TEXT = QColor("#F7F8FA")
 MUTED = QColor("#A9B0BA")
 TRACK = QColor("#353A43")
-FIVE_HOUR = QColor("#32B6FF")
-SEVEN_DAY = QColor("#FFC857")
+RING_BLUE = QColor("#32B6FF")
 WARNING = QColor("#FF6B6B")
 
 
@@ -42,6 +41,14 @@ def format_day_duration(seconds: int) -> str:
     hours, remainder = divmod(remainder, 3600)
     minutes = remainder // 60
     return f"{days}d {hours:02d}:{minutes:02d}"
+
+
+def format_reset_countdown(seconds: int) -> str:
+    seconds = max(0, int(seconds))
+    days, remainder = divmod(seconds, 86_400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes = remainder // 60
+    return f"{days}d {hours}h {minutes}min"
 
 
 def format_tokens(tokens: int) -> str:
@@ -73,41 +80,37 @@ class UsageRenderer:
         self._draw_title(painter, bounds)
         center_x = bounds.center().x()
         ring_top = bounds.top() + 48
-        outer = QRectF(center_x - 69, ring_top, 138, 138)
-        inner = outer.adjusted(22, 22, -22, -22)
-        self._draw_ring(painter, outer, snapshot.five_hour, FIVE_HOUR, 10)
-        self._draw_ring(painter, inner, snapshot.seven_day, SEVEN_DAY, 8)
+        ring = QRectF(center_x - 69, ring_top, 138, 138)
+        self._draw_ring(painter, ring, snapshot.seven_day, 10)
 
-        five_value = self._main_value(snapshot.five_hour)
-        seven_value = self._window_value(snapshot.seven_day)
+        remaining_value = self._main_value(snapshot.seven_day)
+        reset_value = (
+            format_reset_countdown(
+                remaining_seconds(snapshot.seven_day, snapshot.collected_at)
+            )
+            if snapshot.seven_day
+            else "--d --h --min"
+        )
         painter.setPen(TEXT)
         painter.setFont(system_font(18, QFont.Weight.DemiBold))
         painter.drawText(
-            QRectF(center_x - 45, ring_top + 48, 90, 28),
+            QRectF(center_x - 59, ring_top + 43, 118, 30),
             Qt.AlignmentFlag.AlignCenter,
-            five_value,
+            remaining_value,
         )
         painter.setPen(MUTED)
-        painter.setFont(system_font(10, QFont.Weight.Medium))
+        painter.setFont(system_font(9, QFont.Weight.Medium))
         painter.drawText(
-            QRectF(center_x - 45, ring_top + 76, 90, 18),
+            QRectF(center_x - 59, ring_top + 73, 118, 20),
             Qt.AlignmentFlag.AlignCenter,
-            f"7d  {seven_value}",
+            reset_value,
         )
-
-        self._draw_legend(painter, bounds, snapshot)
 
     @staticmethod
     def _main_value(window: UsageWindow | None) -> str:
         if window and window.used_percent is not None:
             return f"{round(100 - window.used_percent)}%"
         return format_tokens(window.used_tokens if window else 0)
-
-    @staticmethod
-    def _window_value(window: UsageWindow | None) -> str:
-        if window and window.used_percent is not None:
-            return f"{round(100 - window.used_percent)}%"
-        return f"{format_tokens(window.used_tokens if window else 0)} tok"
 
     def _draw_title(self, painter: QPainter, bounds: QRectF) -> None:
         painter.setPen(TEXT)
@@ -123,7 +126,6 @@ class UsageRenderer:
         painter: QPainter,
         rect: QRectF,
         window: UsageWindow | None,
-        color: QColor,
         width: int,
     ) -> None:
         painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -131,50 +133,20 @@ class UsageRenderer:
         painter.drawArc(rect, 90 * 16, -360 * 16)
         percent = 100 - window.used_percent if window and window.used_percent is not None else None
         if percent is not None:
-            painter.setPen(QPen(color, width, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
-            painter.drawArc(rect, 90 * 16, -round(360 * 16 * percent / 100))
-
-    def _draw_legend(
-        self, painter: QPainter, bounds: QRectF, snapshot: UsageSnapshot
-    ) -> None:
-        rows = (
-            ("5h", snapshot.five_hour, FIVE_HOUR, False),
-            ("7d", snapshot.seven_day, SEVEN_DAY, True),
-        )
-        top = bounds.top() + 202
-        for index, (label, window, color, show_days) in enumerate(rows):
-            y = top + index * 31
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.setBrush(color)
-            painter.drawEllipse(QRectF(bounds.left() + 17, y + 7, 7, 7))
-            painter.setPen(TEXT)
-            painter.setFont(system_font(10, QFont.Weight.Medium))
-            painter.drawText(
-                QRectF(bounds.left() + 31, y, 82, 21),
-                Qt.AlignmentFlag.AlignVCenter,
-                label,
-            )
-            reset = (
-                (
-                    format_day_duration(
-                        remaining_seconds(window, snapshot.collected_at)
-                    )
-                    if show_days
-                    else format_duration(
-                        remaining_seconds(window, snapshot.collected_at)
-                    )
+            gradient = QConicalGradient(rect.center(), -90)
+            gradient.setColorAt(0.0, RING_BLUE)
+            gradient.setColorAt(0.28, QColor("#68D5FF"))
+            gradient.setColorAt(0.72, QColor("#208BFF"))
+            gradient.setColorAt(1.0, RING_BLUE)
+            painter.setPen(
+                QPen(
+                    QBrush(gradient),
+                    width,
+                    Qt.PenStyle.SolidLine,
+                    Qt.PenCapStyle.RoundCap,
                 )
-                if window
-                else ("--d --:--" if show_days else "--:--:--")
             )
-            value = f"Reset {reset}"
-            painter.setPen(MUTED)
-            painter.setFont(system_font(9, fixed=True))
-            painter.drawText(
-                QRectF(bounds.left() + 85, y, bounds.width() - 102, 21),
-                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
-                value,
-            )
+            painter.drawArc(rect, 90 * 16, -round(360 * 16 * percent / 100))
 
     def _draw_unavailable(self, painter: QPainter, bounds: QRectF) -> None:
         painter.setPen(WARNING)

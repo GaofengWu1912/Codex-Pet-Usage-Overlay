@@ -11,7 +11,12 @@ from collector.log_parser import read_log_usage
 from collector.models import UsageSnapshot, UsageWindow, snapshot_from_payload
 from collector.pet_state import pet_bounds_from_state
 from collector.usage import UsageCollector
-from overlay.renderer import UsageRenderer, format_day_duration, format_duration
+from overlay.renderer import (
+    UsageRenderer,
+    format_day_duration,
+    format_duration,
+    format_reset_countdown,
+)
 from overlay.hover_state import HoverPhase, HoverStateMachine
 
 
@@ -85,7 +90,12 @@ class SchemaAdapterTests(unittest.TestCase):
     def test_renderer_converts_used_to_remaining(self) -> None:
         window = UsageWindow(54, 100)
         self.assertEqual(UsageRenderer._main_value(window), "46%")
-        self.assertEqual(UsageRenderer._window_value(window), "46%")
+
+    def test_reset_countdown_uses_day_hour_minute_labels(self) -> None:
+        self.assertEqual(
+            format_reset_countdown(6 * 86_400 + 23 * 3600 + 41 * 60),
+            "6d 23h 41min",
+        )
 
 
 class HoverStateTests(unittest.TestCase):
@@ -116,6 +126,30 @@ class HoverStateTests(unittest.TestCase):
         self.assertEqual(bounds.region_dict()["x"], -800)
         self.assertEqual(bounds.region_dict()["y"], 120)
         self.assertEqual(bounds.display_id, "2")
+
+    def test_current_direct_pet_bounds_schema_uses_stable_dimensions(self) -> None:
+        bounds = pet_bounds_from_state(
+            {
+                "electron-avatar-overlay-bounds": {
+                    "x": 1211,
+                    "y": 316,
+                    "displayBounds": {
+                        "x": 0,
+                        "y": 0,
+                        "width": 1470,
+                        "height": 956,
+                    },
+                    "displayId": 1,
+                    "placement": "bottom-end",
+                }
+            }
+        )
+        assert bounds is not None
+        self.assertEqual(
+            bounds.region_dict(),
+            {"x": 1211, "y": 316, "width": 113, "height": 123},
+        )
+        self.assertEqual(bounds.display_id, "1")
 
     def test_elapsed_hover_shows_then_leave_hides(self) -> None:
         state = HoverStateMachine()
@@ -278,6 +312,34 @@ class SourceTests(unittest.TestCase):
             )
             assert snapshot is not None
             self.assertEqual(snapshot.five_hour.used_percent, 25)
+
+    def test_null_token_info_does_not_abort_log_collection(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            session = root / "sessions"
+            session.mkdir()
+            now = datetime.now(timezone.utc).timestamp()
+            event = {
+                "timestamp": datetime.fromtimestamp(now - 60, timezone.utc).isoformat(),
+                "type": "event_msg",
+                "payload": {
+                    "type": "token_count",
+                    "info": None,
+                    "rate_limits": {
+                        "primary": {"used_percent": 17, "window_minutes": 300},
+                        "secondary": {"used_percent": 29, "window_minutes": 10080},
+                    },
+                },
+            }
+            (session / "rollout.jsonl").write_text(
+                json.dumps(event) + "\n", encoding="utf-8"
+            )
+
+            snapshot = read_log_usage([root], now=now)
+
+            assert snapshot is not None
+            self.assertEqual(snapshot.five_hour.used_percent, 17)
+            self.assertEqual(snapshot.seven_day.used_percent, 29)
 
     def test_cache_is_used_when_live_sources_are_missing(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
